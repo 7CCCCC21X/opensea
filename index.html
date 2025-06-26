@@ -1,133 +1,236 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="UTF-8" />
-  <title>OpenSea XP 批量查询</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <style>
-    body{font-family:Segoe UI,PingFang SC,Microsoft YaHei,sans-serif;background:#f9f9f9;color:#333;margin:0;padding:24px}
-    h1{text-align:center;margin-bottom:12px;color:#0078d4}
-    .author{text-align:center;margin-bottom:24px}
-    .author a{color:#0078d4;text-decoration:none}
-    .author a:hover{text-decoration:underline}
-    textarea{width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:12px;font-size:14px;resize:vertical}
-    .controls{margin:16px 0;text-align:center}
-    button{background:#0078d4;color:#fff;border:none;border-radius:6px;padding:10px 20px;font-size:15px;cursor:pointer;transition:background .2s}
-    button:hover{background:#005fa3}
-    table{width:100%;border-collapse:collapse;margin-top:24px}
-    th,td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left}
-    th{background:#fafafa}
-    tr:nth-child(even){background:#fafafa}
-    .loading{color:#888;font-style:italic}
-    #stats{margin-top:16px;text-align:center;font-weight:600;display:none}
-  </style>
+<meta charset="UTF-8" />
+<title>OpenSea XP 批量查询</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+
+<style>
+:root{
+  --c-bg:#f9f9f9;        --c-card:#fff;
+  --c-text:#333;         --c-sub:#666;
+  --c-primary:#0078d4;   --c-primary-dark:#005fa3;
+  --xp-low:#9ca3af;      --xp-mid:#3b82f6;  --xp-high:#16a34a;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --c-bg:#111827;--c-card:#1f2937;
+    --c-text:#e5e7eb;--c-sub:#9ca3af;
+  }
+}
+body{background:var(--c-bg);color:var(--c-text);font-family:"Segoe UI",PingFang SC,"Microsoft YaHei",sans-serif;margin:0}
+.container{max-width:960px;margin:auto;padding:24px}
+h1{text-align:center;margin:0 0 10px;font-size:26px;color:var(--c-primary)}
+.author{text-align:center;margin-bottom:20px;font-size:14px}
+.author a{color:var(--c-primary);text-decoration:none}
+.author a:hover{text-decoration:underline}
+.sticky{position:sticky;top:0;z-index:10;background:var(--c-bg);padding:12px 0;border-bottom:1px solid #e5e7eb}
+textarea{width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:12px;font-size:14px;resize:vertical}
+.controls{margin-top:12px;text-align:center;gap:10px;display:flex;flex-wrap:wrap;justify-content:center}
+button{background:var(--c-primary);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:15px;cursor:pointer;transition:.2s}
+button:hover{background:var(--c-primary-dark)}
+button:disabled{opacity:.5;cursor:not-allowed}
+label{font-weight:600}
+/* 进度条 + 统计 */
+.progress{display:none;align-items:center;gap:8px;margin-top:10px;justify-content:center}
+progress{width:180px;height:12px}
+#stats{display:none;text-align:center;font-weight:600;margin:6px 0 0}
+.table-wrap{overflow-x:auto;margin-top:24px}
+table{width:100%;border-collapse:collapse;font-size:15px;min-width:620px}
+th,td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left}
+th{background:var(--c-card);position:sticky;top:0;z-index:5;cursor:pointer;user-select:none}
+tr:nth-child(even){background:rgba(0,0,0,.03)}
+.loading{color:var(--c-sub);font-style:italic}
+.xp-low{color:var(--xp-low)}
+.xp-mid{color:var(--xp-mid)}
+.xp-high{color:var(--xp-high)}
+#empty{display:none;margin:40px 0;text-align:center;color:var(--c-sub)}
+.options{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;margin-top:6px;font-size:14px}
+.options label{cursor:pointer}
+.theme-toggle{position:fixed;right:16px;bottom:16px;padding:6px 10px;font-size:13px}
+@media (max-width:480px){table{font-size:13px}}
+</style>
 </head>
 <body>
+<div class="container">
+
   <h1>OpenSea XP 批量查询</h1>
-  <div class="author">
-    <a href="https://x.com/0xXIAOc" target="_blank" rel="noopener">作者推特 @0xXIAOc</a>
+  <div class="author"><a href="https://x.com/0xXIAOc" target="_blank" rel="noopener">作者推特 @0xXIAOc</a></div>
+
+  <!-- ===== 输入 & 控件 ===== -->
+  <div class="sticky">
+    <label for="addresses">输入钱包地址（每行一个）</label>
+    <textarea id="addresses"></textarea>
+
+    <div class="controls">
+      <button id="queryBtn">开始查询</button>
+      <button id="exportBtn" disabled>导出 CSV</button>
+      <button id="copyBtn"   disabled>复制表格</button>
+    </div>
+
+    <div class="options">
+      <label><input type="checkbox" id="privacyChk"> 只显示前 6 位</label>
+      <label><input type="checkbox" id="darkToggle"> 深色模式</label>
+    </div>
+
+    <!-- 进度 -->
+    <div class="progress" id="progWrap">
+      <progress id="progressBar" value="0" max="100"></progress>
+      <span id="progressText">0 %</span>
+    </div>
+
+    <!-- 统计条（紧跟进度条） -->
+    <div id="stats">
+      查询地址总数 : <span id="countInput">0</span>&emsp;
+      有 XP 的地址数量 : <span id="countHasXP">0</span>&emsp;
+      总 XP : <span id="sumXP">0</span>
+    </div>
   </div>
 
-  <label for="addresses">输入钱包地址（每行一个）</label>
-  <textarea id="addresses" placeholder=""></textarea>
+  <!-- ===== 结果 ===== -->
+  <div id="empty">暂无数据，请输入地址并点击「开始查询」</div>
 
-  <div class="controls">
-    <button id="queryBtn">开始查询</button>
+  <div class="table-wrap">
+    <table id="resultTable" style="display:none">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>地址</th>
+          <th id="xpHeader" data-order="desc">总 XP ▾</th>
+          <th>状态</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
   </div>
+</div>
 
-  <table id="resultTable" style="display:none">
-    <thead>
-      <tr><th>#</th><th>地址</th><th>总 XP</th><th>状态</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <div id="stats">
-    统计：共 <span id="countInput">0</span> 个地址，
-    <span id="countHasXP">0</span> 个有&nbsp;XP，
-    总&nbsp;XP：<span id="sumXP">0</span>
-  </div>
+<button class="theme-toggle" id="themeBtn" title="切换主题">🌓</button>
 
 <script>
-/* ===== 配置信息 ===== */
-const ENDPOINT = 'https://gql.opensea.io/graphql';   // 如遇 CORS，自行替换为代理地址
-const HEADERS = {
-  'Content-Type': 'application/json',
-  'x-app-id': 'os2-web',
-  'accept': 'application/graphql-response+json, application/json'
-};
+/* ---------- 全局配置 ---------- */
+const ENDPOINT = 'https://gql.opensea.io/graphql';
+const HEADERS  = {'Content-Type':'application/json','x-app-id':'os2-web','accept':'application/graphql-response+json, application/json'};
+const CONCURRENCY = 5;
 
-/* ===== 事件绑定 ===== */
-document.getElementById('queryBtn').addEventListener('click', async () => {
-  const addrInput = document.getElementById('addresses').value
-    .split('\n')
-    .map(a => a.trim())
-    .filter(Boolean);
+/* ---------- DOM ---------- */
+const txtArea   = document.getElementById('addresses');
+const btnQuery  = document.getElementById('queryBtn');
+const btnExport = document.getElementById('exportBtn');
+const btnCopy   = document.getElementById('copyBtn');
+const tableWrap = document.getElementById('resultTable');
+const tbody     = tableWrap.querySelector('tbody');
+const progWrap  = document.getElementById('progWrap');
+const progBar   = document.getElementById('progressBar');
+const progTxt   = document.getElementById('progressText');
+const statsBox  = document.getElementById('stats');
+const countInputEl = document.getElementById('countInput');
+const countHasXPEl = document.getElementById('countHasXP');
+const sumXPEl   = document.getElementById('sumXP');
+const emptyTip  = document.getElementById('empty');
+const xpHeader  = document.getElementById('xpHeader');
+const privacyChk= document.getElementById('privacyChk');
+const darkToggle= document.getElementById('darkToggle');
+const themeBtn  = document.getElementById('themeBtn');
 
-  if (!addrInput.length) { alert('请输入至少一个地址'); return; }
+/* ---------- 工具 ---------- */
+function mask(addr){
+  return privacyChk.checked ? addr.slice(0,8)+'…' : addr;
+}
+function xpClass(xp){
+  if(xp===0) return 'xp-low';
+  if(xp<200) return 'xp-low';
+  if(xp<500) return 'xp-mid';
+  return 'xp-high';
+}
+function createRow(idx,address){
+  const row = tbody.insertRow();
+  row.insertCell().textContent = idx;
+  row.insertCell().textContent = mask(address);
+  const xpCell = row.insertCell(); xpCell.textContent='查询中…'; xpCell.className='loading';
+  row.insertCell().textContent='⌛';
+  row.dataset.address = address;
+  row.dataset.xp = 0;
+  return row;
+}
+async function fetchXP(address){
+  const body = {
+    operationName:'LeaderboardXP',
+    query:`query LeaderboardXP($address: Address!) { userXP(address: $address) { totalXP } }`,
+    variables:{address}
+  };
+  const res = await fetch(ENDPOINT,{method:'POST',headers:HEADERS,body:JSON.stringify(body)});
+  if(!res.ok) throw new Error(res.status);
+  const j = await res.json();
+  return j?.data?.userXP?.totalXP ?? 0;
+}
 
-  const table = document.getElementById('resultTable');
-  const tbody = table.querySelector('tbody');
-  tbody.innerHTML = '';
-  table.style.display = 'table';
+/* ---------- 主逻辑 ---------- */
+btnQuery.addEventListener('click', async ()=>{
+  const addresses = [...new Set(txtArea.value.split(/\s+/).map(s=>s.trim()).filter(Boolean))];
+  if(!addresses.length){ emptyTip.style.display='block'; return; }
+  emptyTip.style.display='none';
+  tableWrap.style.display='table';
+  tbody.innerHTML='';
+  btnExport.disabled = btnCopy.disabled = true;
+  progWrap.style.display='flex';
+  statsBox.style.display='block';
+  progBar.value=0; progTxt.textContent='0 %';
+  countInputEl.textContent=addresses.length;
+  countHasXPEl.textContent=sumXPEl.textContent=0;
 
-  /* 初始化统计 */
-  const statDiv = document.getElementById('stats');
-  const countInputEl = document.getElementById('countInput');
-  const countHasXPEl = document.getElementById('countHasXP');
-  const sumXPEl = document.getElementById('sumXP');
-  let countHasXP = 0, sumXP = 0;
-  countInputEl.textContent = addrInput.length;
-  countHasXPEl.textContent = 0;
-  sumXPEl.textContent = 0;
-  statDiv.style.display = 'block';
-
-  async function fetchXP(address){
-    const body = {
-      operationName:'LeaderboardXP',
-      query:`query LeaderboardXP($address: Address!) {
-        userXP(address: $address) {
-          totalXP
-          __typename
-        }
-      }`,
-      variables:{address}
-    };
-    const res = await fetch(ENDPOINT,{method:'POST',headers:HEADERS,body:JSON.stringify(body)});
-    if(!res.ok) throw new Error(res.status);
-    const json = await res.json();
-    return json?.data?.userXP?.totalXP ?? 0;
-  }
-
-  /* 顺序请求，可改并发 */
-  for(let i=0;i<addrInput.length;i++){
-    const address = addrInput[i];
-
-    const row = tbody.insertRow();
-    row.insertCell().textContent = i+1;
-    row.insertCell().textContent = address;
-    const xpCell = row.insertCell(); xpCell.textContent='查询中…'; xpCell.className='loading';
-    const statusCell = row.insertCell(); statusCell.textContent='⌛';
-
-    try{
-      const xp = await fetchXP(address);
-      xpCell.textContent = xp;
-      xpCell.className='';
-      statusCell.textContent='✅';
-
-      /* 更新统计 */
-      sumXP += xp;
-      if(xp>0) countHasXP++;
-      countHasXPEl.textContent = countHasXP;
-      sumXPEl.textContent = sumXP;
-    }catch(e){
-      console.error(address,e);
-      xpCell.textContent='--';
-      xpCell.className='';
-      statusCell.textContent='❌';
+  let done=0,sumXP=0,hasXP=0;
+  const queue=[...addresses];
+  const workers = Array(CONCURRENCY).fill(0).map(async ()=>{
+    while(queue.length){
+      const addr = queue.shift();
+      const row  = createRow(addresses.indexOf(addr)+1,addr);
+      try{
+        const xp = await fetchXP(addr);
+        row.cells[2].textContent = xp||'—';
+        row.cells[2].className = xpClass(xp);
+        row.cells[3].textContent='✅';
+        row.dataset.xp = xp;
+        sumXP += xp;
+        if(xp>0) hasXP++;
+      }catch{ row.cells[2].textContent='--'; row.cells[3].textContent='❌'; }
+      done++; const pct=Math.round(done/addresses.length*100);
+      progBar.value=pct; progTxt.textContent=pct+' %';
+      sumXPEl.textContent=sumXP;
+      countHasXPEl.textContent=hasXP;
     }
-  }
+  });
+  await Promise.all(workers);
+  progWrap.style.display='none';
+  btnExport.disabled = btnCopy.disabled = false;
 });
+
+/* ---------- 导出 / 复制 ---------- */
+btnExport.addEventListener('click',()=>{
+  let csv='index,address,xp\n';
+  [...tbody.rows].forEach(r=>csv+=`${r.cells[0].textContent},${r.dataset.address},${r.dataset.xp}\n`);
+  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url;a.download='opensea_xp.csv';a.click();URL.revokeObjectURL(url);
+});
+btnCopy.addEventListener('click',async()=>{
+  let txt=''; [...tbody.rows].forEach(r=>txt+=`${r.cells[0].textContent}\t${r.dataset.address}\t${r.dataset.xp}\n`);
+  await navigator.clipboard.writeText(txt.trim()); alert('已复制到剪贴板');
+});
+
+/* ---------- 排序 ---------- */
+xpHeader.addEventListener('click',()=>{
+  const order = xpHeader.dataset.order==='desc'?'asc':'desc';
+  xpHeader.dataset.order=order;
+  xpHeader.innerHTML = `总&nbsp;XP&nbsp;${order==='desc'?'▾':'▴'}`;
+  const rows=[...tbody.rows].sort((a,b)=>order==='desc'?b.dataset.xp-a.dataset.xp:a.dataset.xp-b.dataset.xp);
+  tbody.append(...rows);
+});
+
+/* ---------- 主题 & 隐私切换 ---------- */
+function applyTheme(){ document.documentElement.classList.toggle('dark',darkToggle.checked); }
+darkToggle.addEventListener('change',applyTheme);
+themeBtn.addEventListener('click',()=>{ darkToggle.checked=!darkToggle.checked; applyTheme(); });
+privacyChk.addEventListener('change',()=>{ [...tbody.rows].forEach(r=>r.cells[1].textContent=mask(r.dataset.address)); });
 </script>
 </body>
 </html>

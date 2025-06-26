@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>OpenSea XP 批量查询</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <style>
+    body{font-family:Segoe UI,PingFang SC,Microsoft YaHei,sans-serif;background:#f9f9f9;color:#333;margin:0;padding:24px}
+    h1{text-align:center;margin-bottom:12px;color:#0078d4}
+    .author{text-align:center;margin-bottom:24px}
+    .author a{color:#0078d4;text-decoration:none}
+    .author a:hover{text-decoration:underline}
+    textarea{width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:12px;font-size:14px;resize:vertical}
+    .controls{margin:16px 0;text-align:center}
+    button{background:#0078d4;color:#fff;border:none;border-radius:6px;padding:10px 20px;font-size:15px;cursor:pointer;transition:background .2s}
+    button:hover{background:#005fa3}
+    table{width:100%;border-collapse:collapse;margin-top:24px}
+    th,td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left}
+    th{background:#fafafa}
+    tr:nth-child(even){background:#fafafa}
+    .loading{color:#888;font-style:italic}
+    #stats{margin-top:16px;text-align:center;font-weight:600;display:none}
+  </style>
+</head>
+<body>
+  <h1>OpenSea XP 批量查询</h1>
+  <div class="author">
+    <a href="https://x.com/0xXIAOc" target="_blank" rel="noopener">作者推特 @0xXIAOc</a>
+  </div>
+
+  <label for="addresses">输入钱包地址（每行一个）</label>
+  <textarea id="addresses" placeholder="0x123...\n0x456..."></textarea>
+
+  <div class="controls">
+    <button id="queryBtn">开始查询</button>
+  </div>
+
+  <table id="resultTable" style="display:none">
+    <thead>
+      <tr><th>#</th><th>地址</th><th>总 XP</th><th>状态</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <div id="stats">
+    统计：共 <span id="countInput">0</span> 个地址，
+    <span id="countHasXP">0</span> 个有&nbsp;XP，
+    总&nbsp;XP：<span id="sumXP">0</span>
+  </div>
+
+<script>
+/* ===== 配置信息 ===== */
+const ENDPOINT = 'https://gql.opensea.io/graphql';   // 如遇 CORS，自行替换为代理地址
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'x-app-id': 'os2-web',
+  'accept': 'application/graphql-response+json, application/json'
+};
+
+/* ===== 事件绑定 ===== */
+document.getElementById('queryBtn').addEventListener('click', async () => {
+  const addrInput = document.getElementById('addresses').value
+    .split('\n')
+    .map(a => a.trim())
+    .filter(Boolean);
+
+  if (!addrInput.length) { alert('请输入至少一个地址'); return; }
+
+  const table = document.getElementById('resultTable');
+  const tbody = table.querySelector('tbody');
+  tbody.innerHTML = '';
+  table.style.display = 'table';
+
+  /* 初始化统计 */
+  const statDiv = document.getElementById('stats');
+  const countInputEl = document.getElementById('countInput');
+  const countHasXPEl = document.getElementById('countHasXP');
+  const sumXPEl = document.getElementById('sumXP');
+  let countHasXP = 0, sumXP = 0;
+  countInputEl.textContent = addrInput.length;
+  countHasXPEl.textContent = 0;
+  sumXPEl.textContent = 0;
+  statDiv.style.display = 'block';
+
+  async function fetchXP(address){
+    const body = {
+      operationName:'LeaderboardXP',
+      query:`query LeaderboardXP($address: Address!) {
+        userXP(address: $address) {
+          totalXP
+          __typename
+        }
+      }`,
+      variables:{address}
+    };
+    const res = await fetch(ENDPOINT,{method:'POST',headers:HEADERS,body:JSON.stringify(body)});
+    if(!res.ok) throw new Error(res.status);
+    const json = await res.json();
+    return json?.data?.userXP?.totalXP ?? 0;
+  }
+
+  /* 顺序请求，可改并发 */
+  for(let i=0;i<addrInput.length;i++){
+    const address = addrInput[i];
+
+    const row = tbody.insertRow();
+    row.insertCell().textContent = i+1;
+    row.insertCell().textContent = address;
+    const xpCell = row.insertCell(); xpCell.textContent='查询中…'; xpCell.className='loading';
+    const statusCell = row.insertCell(); statusCell.textContent='⌛';
+
+    try{
+      const xp = await fetchXP(address);
+      xpCell.textContent = xp;
+      xpCell.className='';
+      statusCell.textContent='✅';
+
+      /* 更新统计 */
+      sumXP += xp;
+      if(xp>0) countHasXP++;
+      countHasXPEl.textContent = countHasXP;
+      sumXPEl.textContent = sumXP;
+    }catch(e){
+      console.error(address,e);
+      xpCell.textContent='--';
+      xpCell.className='';
+      statusCell.textContent='❌';
+    }
+  }
+});
+</script>
+</body>
+</html>

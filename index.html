@@ -2,66 +2,85 @@
 <html lang="zh">
 <head>
 <meta charset="UTF-8" />
-<title>OpenSea XP 批量查询</title>
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>OpenSea XP 批量查询</title>
 
 <!-- 网站 Logo -->
 <link rel="icon" href="s4bg0-lc131-001.ico" type="image/x-icon" />
-<link rel="shortcut icon" href="s4bg0-lc131-001.ico" type="image/x-icon" />
 
 <style>
 :root{
-  --c-bg:#f9f9f9;        --c-card:#fff;
-  --c-text:#333;         --c-sub:#666;
-  --c-primary:#0078d4;   --c-primary-dark:#005fa3;
-  --xp-low:#9ca3af;      --xp-mid:#3b82f6;  --xp-high:#16a34a;
+  --c-bg:#f9f9f9;--c-card:#fff;--c-text:#333;--c-sub:#666;
+  --c-primary:#0078d4;--c-primary-dark:#005fa3;
+  --xp-low:#9ca3af;--xp-mid:#3b82f6;--xp-high:#16a34a;
 }
 @media (prefers-color-scheme: dark){
-  :root{
-    --c-bg:#111827;--c-card:#1f2937;
-    --c-text:#e5e7eb;--c-sub:#9ca3af;
-  }
+  :root{--c-bg:#111827;--c-card:#1f2937;--c-text:#e5e7eb;--c-sub:#9ca3af;}
 }
-body{background:var(--c-bg);color:var(--c-text);font-family:"Segoe UI",PingFang SC,"Microsoft YaHei",sans-serif;margin:0}
+body{margin:0;background:var(--c-bg);color:var(--c-text);
+     font-family:"Segoe UI",PingFang SC,"Microsoft YaHei",sans-serif}
 .container{max-width:960px;margin:auto;padding:24px}
 h1{text-align:center;margin:0 0 10px;font-size:26px;color:var(--c-primary)}
 .author{text-align:center;margin-bottom:20px;font-size:14px}
 .author a{color:var(--c-primary);text-decoration:none}
 .author a:hover{text-decoration:underline}
-.sticky{position:sticky;top:0;z-index:10;background:var(--c-bg);padding:12px 0;border-bottom:1px solid #e5e7eb}
-textarea{width:100%;height:140px;border:1px solid #ccc;border-radius:6px;padding:12px;font-size:14px;resize:vertical}
-.controls{margin-top:12px;text-align:center;gap:10px;display:flex;flex-wrap:wrap;justify-content:center}
-button{background:var(--c-primary);color:#fff;border:none;border-radius:6px;padding:8px 18px;font-size:15px;cursor:pointer;transition:.2s}
+
+.sticky{position:sticky;top:0;z-index:10;background:var(--c-bg);
+        padding:12px 0;border-bottom:1px solid #e5e7eb}
+textarea{width:100%;height:140px;border:1px solid #ccc;border-radius:6px;
+         padding:12px;font-size:14px;resize:vertical}
+.controls{margin-top:12px;display:flex;flex-wrap:wrap;gap:10px;
+          justify-content:center}
+button{background:var(--c-primary);color:#fff;border:none;border-radius:6px;
+       padding:8px 18px;font-size:15px;cursor:pointer;transition:.2s}
 button:hover{background:var(--c-primary-dark)}
 button:disabled{opacity:.5;cursor:not-allowed}
 label{font-weight:600}
-/* 进度条 + 统计 */
-.progress{display:none;align-items:center;gap:8px;margin-top:10px;justify-content:center}
+
+/* 进度条 & 统计 */
+.progress{display:none;align-items:center;gap:8px;margin-top:10px;
+          justify-content:center}
 progress{width:180px;height:12px}
-#stats{display:none;text-align:center;font-weight:600;margin:6px 0 0}
+#stats{display:none;text-align:center;font-weight:600;margin-top:6px}
+
 .table-wrap{overflow-x:auto;margin-top:24px}
 table{width:100%;border-collapse:collapse;font-size:15px;min-width:620px}
 th,td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left}
-th{background:var(--c-card);position:sticky;top:0;z-index:5;cursor:pointer;user-select:none}
+th{background:var(--c-card);position:sticky;top:0;z-index:5;cursor:pointer}
 tr:nth-child(even){background:rgba(0,0,0,.03)}
 .loading{color:var(--c-sub);font-style:italic}
-.xp-low{color:var(--xp-low)}
-.xp-mid{color:var(--xp-mid)}
-.xp-high{color:var(--xp-high)}
+.xp-low{color:var(--xp-low)} .xp-mid{color:var(--xp-mid)} .xp-high{color:var(--xp-high)}
 #empty{display:none;margin:40px 0;text-align:center;color:var(--c-sub)}
-.options{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;margin-top:6px;font-size:14px}
-.options label{cursor:pointer}
+.options{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;
+         margin-top:6px;font-size:14px}
 .theme-toggle{position:fixed;right:16px;bottom:16px;padding:6px 10px;font-size:13px}
+
 @media (max-width:480px){table{font-size:13px}}
+
+/* ===== Modal ===== */
+#modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);
+       justify-content:center;align-items:flex-start;overflow:auto;z-index:100}
+.modal-content{background:var(--c-card);color:var(--c-text);
+               border-radius:8px;margin:40px 12px;padding:20px;max-width:900px;
+               width:100%;box-shadow:0 4px 20px rgba(0,0,0,.25)}
+.modal-header{display:flex;justify-content:space-between;align-items:center;
+              margin-bottom:12px}
+.modal-header h2{margin:0;font-size:20px}
+.modal-header button{background:none;border:none;font-size:22px;cursor:pointer}
+.detail-wrap{overflow-x:auto;max-height:70vh}
+.detail-table{width:100%;border-collapse:collapse;font-size:14px;min-width:680px}
+.detail-table th,.detail-table td{border:1px solid #e5e7eb;padding:6px 8px}
+.detail-table tr:nth-child(even){background:rgba(0,0,0,.03)}
+#loadMore{margin:10px auto 0;display:block}
+.detail-loading{margin:10px 0;color:var(--c-sub);text-align:center}
 </style>
 </head>
 <body>
 <div class="container">
-
   <h1>OpenSea XP 批量查询</h1>
   <div class="author"><a href="https://x.com/0xXIAOc" target="_blank" rel="noopener">作者推特 @0xXIAOc</a></div>
 
-  <!-- ===== 输入 & 控件 ===== -->
+  <!-- ===== 输入区域 ===== -->
   <div class="sticky">
     <label for="addresses">输入钱包地址（每行一个）</label>
     <textarea id="addresses"></textarea>
@@ -77,32 +96,25 @@ tr:nth-child(even){background:rgba(0,0,0,.03)}
       <label><input type="checkbox" id="darkToggle"> 深色模式</label>
     </div>
 
-    <!-- 进度 -->
     <div class="progress" id="progWrap">
       <progress id="progressBar" value="0" max="100"></progress>
       <span id="progressText">0 %</span>
     </div>
 
-    <!-- 统计条（紧跟进度条） -->
     <div id="stats">
-      查询地址总数 : <span id="countInput">0</span>&emsp;
-      有 XP 的地址数量 : <span id="countHasXP">0</span>&emsp;
-      总 XP : <span id="sumXP">0</span>
+      查询地址总数：<span id="countInput">0</span> 
+      有 XP 的地址：<span id="countHasXP">0</span> 
+      总 XP：<span id="sumXP">0</span>
     </div>
   </div>
 
-  <!-- ===== 结果 ===== -->
+  <!-- ===== 结果表 ===== -->
   <div id="empty">暂无数据，请输入地址并点击「开始查询」</div>
 
   <div class="table-wrap">
     <table id="resultTable" style="display:none">
       <thead>
-        <tr>
-          <th>#</th>
-          <th>地址</th>
-          <th id="xpHeader" data-order="desc">总 XP ▾</th>
-          <th>状态</th>
-        </tr>
+        <tr><th>#</th><th>地址</th><th id="xpHeader" data-order="desc">总 XP ▾</th><th>状态</th></tr>
       </thead>
       <tbody></tbody>
     </table>
@@ -111,130 +123,205 @@ tr:nth-child(even){background:rgba(0,0,0,.03)}
 
 <button class="theme-toggle" id="themeBtn" title="切换主题">🌓</button>
 
+<!-- ===== Modal for detail ===== -->
+<div id="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modalTitle">明细</h2>
+      <button id="closeModal">×</button>
+    </div>
+    <div class="detail-wrap">
+      <table class="detail-table">
+        <thead>
+          <tr><th>日期（本地）</th><th>XP</th><th>任务</th><th>稀有度</th></tr>
+        </thead>
+        <tbody id="detailBody"></tbody>
+      </table>
+      <div id="detailLoading" class="detail-loading"></div>
+      <button id="loadMore" style="display:none">加载更多</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ---------- 全局配置 ---------- */
 const ENDPOINT = 'https://gql.opensea.io/graphql';
-const HEADERS  = {'Content-Type':'application/json','x-app-id':'os2-web','accept':'application/graphql-response+json, application/json'};
+const HEADERS  = {
+  'Content-Type':'application/json',
+  'x-app-id':'os2-web',
+  'accept':'application/graphql-response+json, application/json'
+};
 const CONCURRENCY = 5;
 
 /* ---------- DOM ---------- */
-const txtArea   = document.getElementById('addresses');
-const btnQuery  = document.getElementById('queryBtn');
-const btnExport = document.getElementById('exportBtn');
-const btnCopy   = document.getElementById('copyBtn');
-const tableWrap = document.getElementById('resultTable');
-const tbody     = tableWrap.querySelector('tbody');
-const progWrap  = document.getElementById('progWrap');
-const progBar   = document.getElementById('progressBar');
-const progTxt   = document.getElementById('progressText');
-const statsBox  = document.getElementById('stats');
-const countInputEl = document.getElementById('countInput');
-const countHasXPEl = document.getElementById('countHasXP');
-const sumXPEl   = document.getElementById('sumXP');
-const emptyTip  = document.getElementById('empty');
-const xpHeader  = document.getElementById('xpHeader');
-const privacyChk= document.getElementById('privacyChk');
-const darkToggle= document.getElementById('darkToggle');
-const themeBtn  = document.getElementById('themeBtn');
+const txtArea         = document.getElementById('addresses');
+const btnQuery        = document.getElementById('queryBtn');
+const btnExport       = document.getElementById('exportBtn');
+const btnCopy         = document.getElementById('copyBtn');
+const tableWrap       = document.getElementById('resultTable');
+const tbody           = tableWrap.querySelector('tbody');
+const progWrap        = document.getElementById('progWrap');
+const progBar         = document.getElementById('progressBar');
+const progTxt         = document.getElementById('progressText');
+const statsBox        = document.getElementById('stats');
+const countInputEl    = document.getElementById('countInput');
+const countHasXPEl    = document.getElementById('countHasXP');
+const sumXPEl         = document.getElementById('sumXP');
+const emptyTip        = document.getElementById('empty');
+const xpHeader        = document.getElementById('xpHeader');
+const privacyChk      = document.getElementById('privacyChk');
+const darkToggle      = document.getElementById('darkToggle');
+const themeBtn        = document.getElementById('themeBtn');
 
-/* ---------- 工具 ---------- */
-function mask(addr){
-  return privacyChk.checked ? addr.slice(0,8)+'…' : addr;
-}
+/* modal */
+const modal           = document.getElementById('modal');
+const modalTitle      = document.getElementById('modalTitle');
+const closeModal      = document.getElementById('closeModal');
+const detailBody      = document.getElementById('detailBody');
+const loadMoreBtn     = document.getElementById('loadMore');
+const detailLoading   = document.getElementById('detailLoading');
+
+/* ---------- 工具函数 ---------- */
+function mask(addr){ return privacyChk.checked ? addr.slice(0,8)+'…' : addr; }
 function xpClass(xp){
   if(xp===0) return 'xp-low';
   if(xp<200) return 'xp-low';
   if(xp<500) return 'xp-mid';
   return 'xp-high';
 }
+/* 中文词典 */
+function translateName(n){
+  const map={
+    TRADE_TOKENS:'兑换代币',BUY_NFT:'购买 NFT',SELL_NFT:'出售 NFT',
+    LIST_NFT:'挂单 NFT',CREATE_COLLECTION:'创建合集',MAKE_OFFER:'出价 NFT',
+    ACCEPT_OFFER:'接受报价',BRIDGE_TOKENS:'跨链',COMPLETE_QUEST:'完成任务',
+    STAKE_POINTS:'质押积分'
+  };
+  return map[n] ?? n;
+}
+function translateTier(t){
+  const map={COMMON:'普通',UNCOMMON:'非常见',RARE:'稀有',EPIC:'史诗'};
+  return map[t] ?? t;
+}
 function createRow(idx,address){
-  const row = tbody.insertRow();
-  row.insertCell().textContent = idx;
-  row.insertCell().textContent = mask(address);
-  const xpCell = row.insertCell(); xpCell.textContent='查询中…'; xpCell.className='loading';
+  const row=tbody.insertRow();
+  row.insertCell().textContent=idx;
+  row.insertCell().textContent=mask(address);
+  const xpCell=row.insertCell(); xpCell.textContent='查询中…'; xpCell.className='loading';
   row.insertCell().textContent='⌛';
-  row.dataset.address = address;
-  row.dataset.xp = 0;
+  row.dataset.address=address;
+  row.dataset.xp=0;
+  row.addEventListener('click',()=>openModal(address));
   return row;
 }
 async function fetchXP(address){
-  const body = {
+  const body={
     operationName:'LeaderboardXP',
-    query:`query LeaderboardXP($address: Address!) { userXP(address: $address) { totalXP } }`,
+    query:`query LeaderboardXP($address: Address!){ userXP(address:$address){ totalXP } }`,
     variables:{address}
   };
-  const res = await fetch(ENDPOINT,{method:'POST',headers:HEADERS,body:JSON.stringify(body)});
+  const res=await fetch(ENDPOINT,{method:'POST',headers:HEADERS,body:JSON.stringify(body)});
   if(!res.ok) throw new Error(res.status);
-  const j = await res.json();
-  return j?.data?.userXP?.totalXP ?? 0;
+  const j=await res.json();
+  return j?.data?.userXP?.totalXP??0;
 }
 
-/* ---------- 主逻辑 ---------- */
+/* ---------- 批量查询 ---------- */
 btnQuery.addEventListener('click', async ()=>{
-  const addresses = [...new Set(txtArea.value.split(/\s+/).map(s=>s.trim()).filter(Boolean))];
-  if(!addresses.length){ emptyTip.style.display='block'; return; }
-  emptyTip.style.display='none';
-  tableWrap.style.display='table';
-  tbody.innerHTML='';
-  btnExport.disabled = btnCopy.disabled = true;
-  progWrap.style.display='flex';
-  statsBox.style.display='block';
+  const addresses=[...new Set(txtArea.value.split(/\s+/).map(s=>s.trim()).filter(Boolean))];
+  if(!addresses.length){emptyTip.style.display='block';return;}
+  emptyTip.style.display='none'; tableWrap.style.display='table';
+  tbody.innerHTML=''; progWrap.style.display='flex'; statsBox.style.display='block';
+  btnExport.disabled=btnCopy.disabled=true;
   progBar.value=0; progTxt.textContent='0 %';
-  countInputEl.textContent=addresses.length;
-  countHasXPEl.textContent=sumXPEl.textContent=0;
-
+  countInputEl.textContent=addresses.length; countHasXPEl.textContent=sumXPEl.textContent=0;
   let done=0,sumXP=0,hasXP=0;
   const queue=[...addresses];
-  const workers = Array(CONCURRENCY).fill(0).map(async ()=>{
+  const workers=Array(CONCURRENCY).fill(0).map(async ()=>{
     while(queue.length){
-      const addr = queue.shift();
-      const row  = createRow(addresses.indexOf(addr)+1,addr);
+      const addr=queue.shift();
+      const row=createRow(addresses.indexOf(addr)+1,addr);
       try{
-        const xp = await fetchXP(addr);
-        row.cells[2].textContent = xp||'—';
-        row.cells[2].className = xpClass(xp);
-        row.cells[3].textContent='✅';
-        row.dataset.xp = xp;
-        sumXP += xp;
-        if(xp>0) hasXP++;
-      }catch{ row.cells[2].textContent='--'; row.cells[3].textContent='❌'; }
+        const xp=await fetchXP(addr);
+        row.cells[2].textContent=xp||'—'; row.cells[2].className=xpClass(xp);
+        row.cells[3].textContent='✅'; row.dataset.xp=xp;
+        sumXP+=xp; if(xp>0) hasXP++;
+      }catch{row.cells[2].textContent='--'; row.cells[3].textContent='❌';}
       done++; const pct=Math.round(done/addresses.length*100);
       progBar.value=pct; progTxt.textContent=pct+' %';
-      sumXPEl.textContent=sumXP;
-      countHasXPEl.textContent=hasXP;
+      sumXPEl.textContent=sumXP; countHasXPEl.textContent=hasXP;
     }
   });
   await Promise.all(workers);
-  progWrap.style.display='none';
-  btnExport.disabled = btnCopy.disabled = false;
+  progWrap.style.display='none'; btnExport.disabled=btnCopy.disabled=false;
 });
 
 /* ---------- 导出 / 复制 ---------- */
 btnExport.addEventListener('click',()=>{
   let csv='index,address,xp\n';
   [...tbody.rows].forEach(r=>csv+=`${r.cells[0].textContent},${r.dataset.address},${r.dataset.xp}\n`);
-  const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url;a.download='opensea_xp.csv';a.click();URL.revokeObjectURL(url);
 });
 btnCopy.addEventListener('click',async()=>{
-  let txt=''; [...tbody.rows].forEach(r=>txt+=`${r.cells[0].textContent}\t${r.dataset.address}\t${r.dataset.xp}\n`);
-  await navigator.clipboard.writeText(txt.trim()); alert('已复制到剪贴板');
+  let txt='';
+  [...tbody.rows].forEach(r=>txt+=`${r.cells[0].textContent}\t${r.dataset.address}\t${r.dataset.xp}\n`);
+  await navigator.clipboard.writeText(txt.trim());
+  alert('已复制到剪贴板');
 });
 
 /* ---------- 排序 ---------- */
 xpHeader.addEventListener('click',()=>{
-  const order = xpHeader.dataset.order==='desc'?'asc':'desc';
+  const order=xpHeader.dataset.order==='desc'?'asc':'desc';
   xpHeader.dataset.order=order;
-  xpHeader.innerHTML = `总&nbsp;XP&nbsp;${order==='desc'?'▾':'▴'}`;
+  xpHeader.innerHTML=`总&nbsp;XP&nbsp;${order==='desc'?'▾':'▴'}`;
   const rows=[...tbody.rows].sort((a,b)=>order==='desc'?b.dataset.xp-a.dataset.xp:a.dataset.xp-b.dataset.xp);
   tbody.append(...rows);
 });
 
-/* ---------- 主题 & 隐私切换 ---------- */
-function applyTheme(){ document.documentElement.classList.toggle('dark',darkToggle.checked); }
+/* ---------- 主题 / 隐私 ---------- */
+function applyTheme(){document.documentElement.classList.toggle('dark',darkToggle.checked);}
 darkToggle.addEventListener('change',applyTheme);
-themeBtn.addEventListener('click',()=>{ darkToggle.checked=!darkToggle.checked; applyTheme(); });
-privacyChk.addEventListener('change',()=>{ [...tbody.rows].forEach(r=>r.cells[1].textContent=mask(r.dataset.address)); });
+themeBtn.addEventListener('click',()=>{darkToggle.checked=!darkToggle.checked;applyTheme();});
+privacyChk.addEventListener('change',()=>{[...tbody.rows].forEach(r=>r.cells[1].textContent=mask(r.dataset.address));});
+
+/* ---------- 明细弹窗 ---------- */
+let nextCursor=null, currentAddr='';
+closeModal.addEventListener('click',()=>modal.style.display='none');
+window.addEventListener('click',e=>{if(e.target===modal) modal.style.display='none';});
+loadMoreBtn.addEventListener('click',()=>fetchDetailPage(currentAddr,nextCursor));
+
+function openModal(address){
+  currentAddr=address; nextCursor=null; detailBody.innerHTML='';
+  modalTitle.textContent=`地址明细：${address.slice(0,6)}…${address.slice(-4)}`;
+  modal.style.display='flex'; fetchDetailPage(address,null);
+}
+async function fetchDetailPage(address,cursor){
+  detailLoading.textContent='加载中…'; loadMoreBtn.style.display='none';
+  const body={operationName:'RewardsActivityTable',
+    query:`query RewardsActivityTable($address:Address!,$limit:Int!,$cursor:String){
+      rewardActivity(address:$address,limit:$limit,cursor:$cursor){
+        items{eventTime amount name tier __typename} nextPageCursor }}`,
+    variables:{address,limit:25,cursor}
+  };
+  try{
+    const res=await fetch(ENDPOINT,{method:'POST',headers:HEADERS,body:JSON.stringify(body)});
+    if(!res.ok) throw new Error(res.status);
+    const j=await res.json();
+    const items=j?.data?.rewardActivity?.items||[];
+    items.forEach(it=>{
+      const tr=document.createElement('tr');
+      const date=new Date(it.eventTime).toLocaleString('zh-CN',{hour12:false});
+      tr.innerHTML=`<td>${date}</td><td>${it.amount}</td>
+                    <td>${translateName(it.name)}</td><td>${translateTier(it.tier)}</td>`;
+      detailBody.appendChild(tr);
+    });
+    nextCursor=j?.data?.rewardActivity?.nextPageCursor;
+    if(nextCursor) loadMoreBtn.style.display='block';
+    detailLoading.textContent=items.length?'':'无更多记录';
+  }catch{detailLoading.textContent='加载失败';}
+}
 </script>
 </body>
 </html>
